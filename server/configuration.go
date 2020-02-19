@@ -18,6 +18,7 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
+	Token string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -25,6 +26,14 @@ type configuration struct {
 func (c *configuration) Clone() *configuration {
 	var clone = *c
 	return &clone
+}
+
+// IsValid checks if all needed fields are set.
+func (c *configuration) IsValid() error {
+	if len(c.Token) == 0 {
+		return errors.New("Token is not configured")
+	}
+	return nil
 }
 
 // getConfiguration retrieves the active configuration under lock, making it safe to use
@@ -76,7 +85,6 @@ func (p *Plugin) OnConfigurationChange() error {
 	if err := p.API.LoadPluginConfiguration(configuration); err != nil {
 		return errors.Wrap(err, "failed to load plugin configuration")
 	}
-
 	p.setConfiguration(configuration)
 
 	return nil

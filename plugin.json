@@ -1,7 +1,7 @@
 {
-    "id": "com.mattermost.plugin-starter-template",
-    "name": "Plugin Starter Template",
-    "description": "This plugin serves as a starting point for writing a Mattermost plugin.",
+    "id": "io.goscrum.mattermost-bot",
+    "name": "GoScrum Bot",
+    "description": "GoScrum Bot.",
     "version": "0.1.0",
     "min_server_version": "5.12.0",
     "server": {
@@ -17,6 +17,13 @@
     "settings_schema": {
         "header": "",
         "footer": "",
-        "settings": []
+        "settings": [
+            {
+                "key": "Token",
+                "display_name": "API Token",
+                "type": "text",
+                "help_text": "Token to access GoScrum.io api"
+            }
+        ]
     }
 }
