@@ -5,8 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-	"github.com/mattermost/mattermost-server/v5/mlog"
+	"github.com/1set/cronrange"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
@@ -59,7 +58,7 @@ func (p *Plugin) OnActivate() error {
 			case <-ticker:
 				token := p.configuration.Token
 				if token != "" {
-					mlog.Info(" Bot is running")
+					fmt.Println(" Bot is running", time.Now())
 					client := NewGoScrumClient("http://192.168.31.56:3000/mattermost/bot", p.configuration.Token)
 					workspace, _ := client.GetWorkspaceByToken()
 					if workspace == nil {
@@ -70,27 +69,38 @@ func (p *Plugin) OnActivate() error {
 					}
 
 					for _, project := range workspace.Projects {
-						for _, participant := range project.Participants {
-							message := fmt.Sprintf("Hello %s :wave: It's time for **%s** in # %s\n Please share what you've been working on",
-								participant.RealName,
-								project.Name,
-								project.ChannelName,
-							)
-							post := model.Post{
-								// TODO - format the name based on first name and lastName
-								Message: message,
+						if cr, err := cronrange.ParseString(project.ReportingTime); err == nil {
+							current := time.Now()
+							if !cr.IsWithin(current) {
+								return
 							}
-							createdPost, err := p.CreateBotDMPost(participant.UserID, &post)
+							for _, participant := range project.Participants {
+								message := fmt.Sprintf("Hello %s :wave: It's time for **%s** in # %s\n Please share what you've been working on",
+									participant.RealName,
+									project.Name,
+									project.ChannelName,
+								)
+								post := model.Post{
+									// TODO - format the name based on first name and lastName
+									Message: message,
+								}
+								_, _ = p.CreateBotDMPost(participant.UserID, &post) // TODO
 
-							question, _ := client.GetParticipantQuestion(project.ID, participant.ID)
+								question, _ := client.GetQuestionDetails(project.Questions[0].ID)
 
-							post = model.Post{
-								Message: question.Title,
+								fmt.Println("Question", question.ID)
+								if question.Title != "" {
+									post = model.Post{
+										Message: question.Title,
+									}
+
+									createdPost, _ := p.CreateBotDMPost(participant.UserID, &post)
+									client.SaveAnswer(participant.ID, question.ID, createdPost.Id)
+								}
 							}
-
-							createdPost, err = p.CreateBotDMPost(participant.UserID, &post)
-							spew.Dump(createdPost)
-							spew.Dump(err)
+						} else {
+							fmt.Println("got parse err:", err)
+							return
 						}
 					}
 				} else {
