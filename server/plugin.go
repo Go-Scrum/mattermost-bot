@@ -61,46 +61,43 @@ func (p *Plugin) OnActivate() error {
 					fmt.Println(" Bot is running", time.Now())
 					client := NewGoScrumClient("http://192.168.31.56:3000/mattermost/bot", p.configuration.Token)
 					workspace, _ := client.GetWorkspaceByToken()
-					if workspace == nil {
-						return
-					}
-					if len(workspace.Projects) == 0 {
-						return
-					}
-
-					for _, project := range workspace.Projects {
-						if cr, err := cronrange.ParseString(project.ReportingTime); err == nil {
-							current := time.Now()
-							if !cr.IsWithin(current) {
-								return
-							}
-							for _, participant := range project.Participants {
-								message := fmt.Sprintf("Hello %s :wave: It's time for **%s** in # %s\n Please share what you've been working on",
-									participant.RealName,
-									project.Name,
-									project.ChannelName,
-								)
-								post := model.Post{
-									// TODO - format the name based on first name and lastName
-									Message: message,
-								}
-								_, _ = p.CreateBotDMPost(participant.UserID, &post) // TODO
-
-								question, _ := client.GetQuestionDetails(project.Questions[0].ID)
-
-								fmt.Println("Question", question.ID)
-								if question.Title != "" {
-									post = model.Post{
-										Message: question.Title,
+					if workspace != nil {
+						if workspace.Projects != nil || len(workspace.Projects) > 0 {
+							for _, project := range workspace.Projects {
+								if cr, err := cronrange.ParseString(project.ReportingTime); err == nil {
+									current := time.Now()
+									if !cr.IsWithin(current) {
+										return
 									}
+									for _, participant := range project.Participants {
+										message := fmt.Sprintf("Hello %s :wave: It's time for **%s** in # %s\n Please share what you've been working on",
+											participant.RealName,
+											project.Name,
+											project.ChannelName,
+										)
+										post := model.Post{
+											// TODO - format the name based on first name and lastName
+											Message: message,
+										}
+										_, _ = p.CreateBotDMPost(participant.UserID, &post) // TODO
 
-									createdPost, _ := p.CreateBotDMPost(participant.UserID, &post)
-									client.SaveAnswer(participant.ID, question.ID, createdPost.Id)
+										question, _ := client.GetQuestionDetails(project.Questions[0].ID)
+
+										fmt.Println("Question", question.ID)
+										if question.Title != "" {
+											post = model.Post{
+												Message: question.Title,
+											}
+
+											createdPost, _ := p.CreateBotDMPost(participant.UserID, &post)
+											client.SaveAnswer(participant.ID, question.ID, createdPost.Id)
+										}
+									}
+								} else {
+									fmt.Println("got parse err:", err)
+									return
 								}
 							}
-						} else {
-							fmt.Println("got parse err:", err)
-							return
 						}
 					}
 				} else {
