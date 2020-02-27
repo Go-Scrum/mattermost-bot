@@ -19,6 +19,13 @@
         "footer": "",
         "settings": [
             {
+                "key": "URL",
+                "display_name": "GoScrum API URL",
+                "type": "text",
+                "default": "https://api.goscrum.io",
+                "help_text": "The base URL for using the plugin with a GoScrum installation. Examples: https://api.goscrum.io"
+            },
+            {
                 "key": "Token",
                 "display_name": "API Token",
                 "type": "text",

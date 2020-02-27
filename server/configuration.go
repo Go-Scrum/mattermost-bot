@@ -19,6 +19,7 @@ import (
 // copy appropriate for your types.
 type configuration struct {
 	Token string
+	URL   string
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -44,7 +45,9 @@ func (p *Plugin) getConfiguration() *configuration {
 	defer p.configurationLock.RUnlock()
 
 	if p.configuration == nil {
-		return &configuration{}
+		return &configuration{
+			URL: "https://api.goscrum.io",
+		}
 	}
 
 	return p.configuration
@@ -74,6 +77,9 @@ func (p *Plugin) setConfiguration(configuration *configuration) {
 		panic("setConfiguration called with the existing configuration")
 	}
 
+	if configuration != nil && configuration.URL == "" {
+		configuration.URL = "https://api.goscrum.io"
+	}
 	p.configuration = configuration
 }
 

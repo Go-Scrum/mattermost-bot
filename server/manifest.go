@@ -33,6 +33,14 @@ const manifestStr = `
     "footer": "",
     "settings": [
       {
+        "key": "URL",
+        "display_name": "GoScrum API URL",
+        "type": "text",
+        "help_text": "The base URL for using the plugin with a GoScrum installation. Examples: https://api.goscrum.io",
+        "placeholder": "",
+        "default": "https://api.goscrum.io"
+      },
+      {
         "key": "Token",
         "display_name": "API Token",
         "type": "text",

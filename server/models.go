@@ -80,9 +80,9 @@ const (
 
 type Workspace struct {
 	Model
-	BotUserID     string        `db:"bot_user_id" json:"bot_user_id"`
-	Language      string        `db:"language" json:"language"`
-	WorkspaceName string        `db:"workspace_name" json:"workspace_name" `
+	BotUserID     string        `json:"bot_user_id"`
+	Language      string        ` json:"language"`
+	WorkspaceName string        `json:"workspace_name" `
 	URL           string        `json:"url"`
 	WorkspaceType WorkspaceType `json:"workspace_type"`
 	ClientID      string        `json:"client_id"`
@@ -92,4 +92,24 @@ type Workspace struct {
 	Expiry        *time.Time    `json:"expiry,omitempty"`
 	PersonalToken string        `json:"personal_token,omitempty"`
 	Projects      []*Project
+}
+
+type MessageType string
+
+const (
+	QuestionMessage   MessageType = "QuestionMessage"
+	AnswerMessage     MessageType = "AnswerMessage"
+	StandupMessage    MessageType = "StandupMessage"
+	GreetingMessage   MessageType = "GreetingMessage"
+	OnBoardingMessage MessageType = "OnBoardingMessage"
+)
+
+type Message struct {
+	Model
+	Content       string      `json:"content"`
+	UserId        string      `json:"user_id"`
+	MessageType   MessageType `json:"message_type"`
+	ParticipantID string      `json:"participant_id"`
+	Question      Question
+	Participant   Participant
 }

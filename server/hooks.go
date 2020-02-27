@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/davecgh/go-spew/spew"
+	"fmt"
+
 	"github.com/mattermost/mattermost-server/v5/mlog"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -23,9 +24,7 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 
 	mlog.Info("Check user channel")
 
-	spew.Dump(post)
-
-	// Make sure this is a post sent directly to Surveybot
+	// Make sure this is a post sent directly to GoScrum
 	channel, appErr := p.API.GetChannel(post.ChannelId)
 	if appErr != nil {
 		p.API.LogError("Unable to get channel for Surveybot feedback", "err", appErr)
@@ -37,32 +36,28 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 	}
 
 	mlog.Info("Done")
-	// Make sure this is not a post sent by another bot
-	//user, appErr := p.API.GetUser(post.UserId)
-	//if appErr != nil {
-	//	p.API.LogError("Unable to get sender for Surveybot feedback", "err", appErr)
-	//	return
-	//}
-	//
-	//if user.IsBot {
-	//	return
-	//}
+	if p.configuration.Token != "" {
+		p.goScrumClient = NewGoScrumClient(fmt.Sprintf("%s/mattermost/bot", p.configuration.URL), p.configuration.Token)
+		// TODO -- check for failure cases.
+		message, _ := p.goScrumClient.UserInteraction(post.UserId, post.Message)
 
-	//// Send the feedback to Segment
-	//if err := p.sendFeedback(post.Message, post.UserId, post.CreateAt); err != nil {
-	//	p.API.LogError("Failed to send Surveybot feedback to Segment", "err", err.Error())
-	//
-	//	// Still appear to the end user as if their feedback was actually sent
-	//}
-	//
-	//// Respond to the feedback
-	//_, appErr = p.CreateBotDMPost(post.UserId, &model.Post{
-	//	Message: feedbackResponseBody,
-	//	Type:    "custom_nps_thanks",
-	//})
-	if appErr != nil {
-		p.API.LogError("Failed to respond to Surveybot feedback")
+		if message.MessageType == QuestionMessage {
+			if message.Question.Title != "" {
+				newPost := model.Post{
+					Message: message.Question.Title,
+				}
+
+				createdPost, err := p.CreateBotDMPost(post.UserId, &newPost)
+				if err != nil {
+					fmt.Println("Error:", err.Error())
+				}
+				if createdPost != nil {
+					p.goScrumClient.UpdateAnswerPost(message.ParticipantID, message.Question.ID, createdPost.Id)
+				}
+			}
+		}
 	}
+
 }
 
 //func (p *Plugin) UserHasLoggedIn(c *plugin.Context, user *model.User) {

@@ -130,10 +130,10 @@ func (g *GoScrumClient) GetQuestionDetails(questionId string) (*Question, error)
 	return &question, nil
 }
 
-func (g *GoScrumClient) SaveAnswer(participantId, questionId, postId string) error {
+func (g *GoScrumClient) UpdateAnswerPost(participantId, questionId, postId string) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-	url := fmt.Sprintf("%s/answer", g.URL)
+	url := fmt.Sprintf("%s/answer/post", g.URL)
 	fmt.Println("Making call to GoScrum service", url)
 
 	answer := Answer{
@@ -168,4 +168,54 @@ func (g *GoScrumClient) SaveAnswer(participantId, questionId, postId string) err
 	// TODO check response for not 200
 
 	return nil
+}
+
+func (g *GoScrumClient) UserInteraction(userId, content string) (*Message, error) {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	url := fmt.Sprintf("%s/user/%s/message", g.URL, userId)
+	fmt.Println("Making call to GoScrum service", url)
+
+	userMessage := Message{
+		Content: content,
+		UserId:  userId,
+	}
+
+	payload, err := json.MarshalToString(&userMessage)
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, strings.NewReader(payload))
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", g.Token))
+
+	fmt.Println("Making request", url)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		return nil, err
+
+	}
+
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		return nil, err
+	}
+
+	message := Message{}
+	err = json.Unmarshal(body, &message)
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		return nil, err
+	}
+
+	return &message, nil
 }
