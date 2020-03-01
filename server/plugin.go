@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/1set/cronrange"
+	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
 	"github.com/pkg/errors"
 )
 
 const (
-	botUsername    = "GoScrum"
-	botDisplayName = "GoScrum"
+	botUsername    = "goscrum"
+	botDisplayName = "GoScrum Bot"
 	botDescription = "A bot account created by the GoScrum plugin."
 )
 
@@ -33,20 +34,28 @@ type Plugin struct {
 
 	// GoScrumClient
 	goScrumClient GoScrumClient
+
+	router *mux.Router
 }
 
 // OnActivate ensure the bot account exists
 func (p *Plugin) OnActivate() error {
+
+	p.router = p.InitAPI()
+
 	systemBot := &model.Bot{
 		Username:    botUsername,
 		DisplayName: botDisplayName,
 		Description: botDescription,
 	}
 	botUserID, appErr := p.Helpers.EnsureBot(systemBot)
+	fmt.Println("Bot creation")
 	if appErr != nil {
 		return errors.Wrap(appErr, "failed to ensure systemBot user")
 	}
 	p.botUserID = botUserID
+
+	fmt.Println("Bot creation", p.botUserID)
 
 	p.API.RegisterCommand(getCommand())
 
@@ -83,7 +92,7 @@ func (p *Plugin) StartBot() {
 						current := time.Now()
 						if cr.IsWithin(current) {
 							for _, participant := range project.Participants {
-								message := fmt.Sprintf("Hello %s :wave: It's time for **%s** in # %s\n Please share what you've been working on",
+								message := fmt.Sprintf("Hello @%s :wave: It's time for **%s** in # %s\n Please share what you've been working on",
 									participant.RealName,
 									project.Name,
 									project.ChannelName,
@@ -92,7 +101,17 @@ func (p *Plugin) StartBot() {
 									// TODO - format the name based on first name and lastName
 									Message: message,
 								}
-								_, _ = p.CreateBotDMPost(participant.UserID, &post) // TODO
+								createdPost, _ := p.CreateBotDMPost(participant.UserID, &post)
+								// TODO check for errors
+								_ = p.goScrumClient.AddUserActivity(UserActivity{
+									UserId:        createdPost.UserId,
+									ChannelID:     createdPost.ChannelId,
+									ProjectID:     project.ID,
+									ParticipantID: participant.ID,
+									QuestionID:    "",
+									BotPostId:     p.botUserID,
+									ActivityType:  UserGreetingActivity,
+								})
 
 								question, _ := p.goScrumClient.GetQuestionDetails(project.Questions[0].ID)
 
@@ -102,8 +121,16 @@ func (p *Plugin) StartBot() {
 										Message: question.Title,
 									}
 
-									createdPost, _ := p.CreateBotDMPost(participant.UserID, &post)
-									p.goScrumClient.UpdateAnswerPost(participant.ID, question.ID, createdPost.Id)
+									createdPost, _ = p.CreateBotDMPost(participant.UserID, &post)
+									_ = p.goScrumClient.AddUserActivity(UserActivity{
+										UserId:        createdPost.UserId,
+										ChannelID:     createdPost.ChannelId,
+										ProjectID:     project.ID,
+										ParticipantID: participant.ID,
+										QuestionID:    question.ID,
+										BotPostId:     p.botUserID,
+										ActivityType:  UserQuestionActivity,
+									})
 								}
 							}
 						}

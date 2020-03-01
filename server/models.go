@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/mattermost/mattermost-server/v5/model"
+)
 
 type Model struct {
 	ID        string    `json:"id" valid:"uuidv4, optional"`
@@ -57,12 +61,12 @@ type Project struct {
 	Questions        []*Question
 }
 
-type QuestionType int
+type QuestionType string
 
 const (
-	Text       QuestionType = 0
-	Numeric    QuestionType = 1
-	PreDefined QuestionType = 2
+	Text       QuestionType = "Text"
+	Numeric    QuestionType = "Numeric"
+	PreDefined QuestionType = "PreDefined"
 )
 
 type Question struct {
@@ -72,10 +76,10 @@ type Question struct {
 	ProjectId string
 }
 
-type WorkspaceType int
+type WorkspaceType string
 
 const (
-	Mattermost WorkspaceType = 0
+	Mattermost WorkspaceType = "Mattermost"
 )
 
 type Workspace struct {
@@ -100,16 +104,43 @@ const (
 	QuestionMessage   MessageType = "QuestionMessage"
 	AnswerMessage     MessageType = "AnswerMessage"
 	StandupMessage    MessageType = "StandupMessage"
+	ReportMessage     MessageType = "ReportMessage"
 	GreetingMessage   MessageType = "GreetingMessage"
 	OnBoardingMessage MessageType = "OnBoardingMessage"
 )
 
 type Message struct {
 	Model
+	Attachments   []*model.SlackAttachment
 	Content       string      `json:"content"`
 	UserId        string      `json:"user_id"`
+	ChannelId     string      `json:"channel_id"`
 	MessageType   MessageType `json:"message_type"`
 	ParticipantID string      `json:"participant_id"`
 	Question      Question
 	Participant   Participant
+}
+
+type UserActivityType string
+
+const (
+	UserQuestionActivity   UserActivityType = "UserQuestionActivity"
+	UserAnswerActivity     UserActivityType = "UserAnswerActivity"
+	UserStandupActivity    UserActivityType = "UserStandupActivity"
+	UserReportActivity     UserActivityType = "UserReportActivity"
+	UserGreetingActivity   UserActivityType = "UserGreetingActivity"
+	UserOnBoardingActivity UserActivityType = "UserOnBoardingActivity"
+)
+
+type UserActivity struct {
+	UserId        string           `json:"user_id"`
+	ChannelID     string           `json:"channel_id"`
+	ProjectID     string           `json:"project_id"`
+	ParticipantID string           `json:"participant_id"`
+	QuestionID    string           `json:"question_id"`
+	BotPostId     string           `json:"bot_post_id"`
+	ActivityType  UserActivityType `json:"activity_type"`
+	Question      Question
+	Participant   Participant
+	Project       Project
 }

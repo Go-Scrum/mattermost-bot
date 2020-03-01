@@ -52,8 +52,60 @@ func (p *Plugin) MessageHasBeenPosted(c *plugin.Context, post *model.Post) {
 					fmt.Println("Error:", err.Error())
 				}
 				if createdPost != nil {
-					p.goScrumClient.UpdateAnswerPost(message.ParticipantID, message.Question.ID, createdPost.Id)
+					_ = p.goScrumClient.AddUserActivity(UserActivity{
+						UserId:        createdPost.UserId,
+						ChannelID:     createdPost.ChannelId,
+						ProjectID:     message.Question.ProjectId,
+						ParticipantID: message.ParticipantID,
+						QuestionID:    message.Question.ID,
+						BotPostId:     p.botUserID,
+						ActivityType:  UserQuestionActivity,
+					})
 				}
+			}
+		}
+
+		if message.MessageType == StandupMessage {
+			newPost := &model.Post{}
+			model.ParseSlackAttachment(newPost, message.Attachments)
+			_, err := p.CreateBotDMPost(post.UserId, newPost)
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+			}
+			//if createdPost != nil {
+			//	_ = p.goScrumClient.AddUserActivity(UserActivity{
+			//		UserId:        createdPost.UserId,
+			//		ChannelID:     createdPost.ChannelId,
+			//		ProjectID:     message.Question.ProjectId,
+			//		ParticipantID: message.ParticipantID,
+			//		QuestionID:    message.Question.ID,
+			//		BotPostId:     p.botUserID,
+			//		ActivityType:  UserStandupActivity,
+			//	})
+			//}
+		}
+
+		if message.MessageType == ReportMessage {
+			newPost := &model.Post{
+				Message:   message.Content,
+				ChannelId: message.ChannelId,
+				UserId:    p.botUserID,
+			}
+			model.ParseSlackAttachment(newPost, message.Attachments)
+
+			createdPost, err := p.CreateChannelPost(newPost)
+			if err != nil {
+				fmt.Println("Error:", err.Error())
+			}
+			if createdPost != nil {
+				_ = p.goScrumClient.AddUserActivity(UserActivity{
+					UserId:        createdPost.UserId,
+					ChannelID:     createdPost.ChannelId,
+					ParticipantID: message.ParticipantID,
+					QuestionID:    message.Question.ID,
+					BotPostId:     p.botUserID,
+					ActivityType:  UserReportActivity,
+				})
 			}
 		}
 	}

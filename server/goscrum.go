@@ -130,19 +130,13 @@ func (g *GoScrumClient) GetQuestionDetails(questionId string) (*Question, error)
 	return &question, nil
 }
 
-func (g *GoScrumClient) UpdateAnswerPost(participantId, questionId, postId string) error {
+func (g *GoScrumClient) AddUserActivity(activity UserActivity) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-	url := fmt.Sprintf("%s/answer/post", g.URL)
+	url := fmt.Sprintf("%s/user/activity", g.URL)
 	fmt.Println("Making call to GoScrum service", url)
 
-	answer := Answer{
-		ParticipantID: participantId,
-		QuestionID:    questionId,
-		BotPostId:     postId,
-	}
-
-	payload, err := json.MarshalToString(&answer)
+	payload, err := json.MarshalToString(&activity)
 	if err != nil {
 		fmt.Println("Error: ", err.Error())
 		return err

@@ -60,6 +60,16 @@ func (p *Plugin) CreateBotDMPost(userID string, post *model.Post) (*model.Post, 
 	return created, nil
 }
 
+func (p *Plugin) CreateChannelPost(post *model.Post) (*model.Post, *model.AppError) {
+	created, err := p.API.CreatePost(post)
+	if err != nil {
+		p.API.LogError("Couldn't send bot DM", "err", err)
+		return nil, err
+	}
+
+	return created, nil
+}
+
 func (p *Plugin) IsBotDMChannel(channel *model.Channel) bool {
 	if channel.Type != model.CHANNEL_DIRECT {
 		return false
